@@ -2,17 +2,16 @@ name: grits
 channels:
   - conda-forge
 dependencies:
+  - python=3.10
+  - numpy
+  - gsd=2.9
+  - mbuild
   - ele
   - freud
-  - gsd=2.9
-  - jupyterlab
-  - mbuild
-  - numpy
   - openbabel
   - pip
   - pre-commit
   - py3Dmol
   - pytest
   - pytest-cov
-  - python=3.10
   - rdkit
