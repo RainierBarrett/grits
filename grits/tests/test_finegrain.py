@@ -4,6 +4,7 @@ from mbuild import Compound
 
 from grits import backmap
 
+asset_dir = path.join(path.dirname(__file__), "assets")
 
 class Test_Backmap(BaseTest):
     def test_backmapnobonds(self, methane, cg_methane):
@@ -24,3 +25,25 @@ class Test_Backmap(BaseTest):
 
         assert fg_alkane.n_bonds == alkane.n_bonds
         assert fg_alkane.n_particles == alkane.n_particles
+
+    def test_backmapsystem(self, tmp_path):
+        gsdfile = path.join(asset_dir, "benzene-aa.gsd")
+        cg_system = CG_System(
+            gsdfile,
+            beads={"_B": "c1ccccc1"},
+            conversion_dict=amber_dict,
+            mass_scale=12.011,
+        )
+        cg_filename = os.path.append(tmp_path, "benzene-cg.gsd")
+        cg_system.save(cg_filename)
+        backmapped_system = backmap(cg_system)
+        fg_filename = os.path.append(tmp_path, "benzene-fg.gsd")
+        backmapped_system.save(fg_filename)
+        with gsd.hoomd.open(gsdfile, "r") as orig, gsd.hoomd.open(
+                fg_filename, "r") as backmapped:
+            # should have same number of frames
+            assert len(orig) == len(backmapped)
+            # should have same number of atoms, bonds, etc
+            for frame1, frame2 in zip(orig, backmapped):
+                assert frame1.particles.N == frame2.particles.N
+                
