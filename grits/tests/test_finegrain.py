@@ -2,7 +2,9 @@ import pytest
 from base_test import BaseTest
 from mbuild import Compound
 
-from grits import backmap
+from grits import backmap, CG_System
+from grits.utils import amber_dict
+from os import path
 
 asset_dir = path.join(path.dirname(__file__), "assets")
 
@@ -34,10 +36,10 @@ class Test_Backmap(BaseTest):
             conversion_dict=amber_dict,
             mass_scale=12.011,
         )
-        cg_filename = os.path.append(tmp_path, "benzene-cg.gsd")
+        cg_filename = path.join(tmp_path, "benzene-cg.gsd")
         cg_system.save(cg_filename)
         backmapped_system = backmap(cg_system)
-        fg_filename = os.path.append(tmp_path, "benzene-fg.gsd")
+        fg_filename = path.join(tmp_path, "benzene-fg.gsd")
         backmapped_system.save(fg_filename)
         with gsd.hoomd.open(gsdfile, "r") as orig, gsd.hoomd.open(
                 fg_filename, "r") as backmapped:

@@ -7,6 +7,7 @@ from collections import defaultdict
 from mbuild import Compound, Particle, load
 
 from grits.utils import align, get_hydrogen, get_index
+from grits import CG_System
 
 
 def backmap(cg_compound):
@@ -25,6 +26,10 @@ def backmap(cg_compound):
     :py:class:`mbuild.Compound`
         The atomistic structure mapped onto the coarse-grained one.
     """
+
+    if type(cg_compound) is CG_System:
+        # TODO: change logic to save a single gsd file and/or return one single mbuild Compound
+        return [backmap(compound) for compound in cg_compound._compounds]
 
     def fg_particles():
         """Set the particles of the fine-grained structure."""
