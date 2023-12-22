@@ -2,15 +2,19 @@
 __all__ = ["backmap"]
 
 import itertools as it
+import gsd.hoomd
+import freud
+import numpy as np
 from collections import defaultdict
 
-from mbuild import Compound, Particle, load
+from mbuild import Compound, Particle, load, formats, conversion
+import mbuild.formats.hoomd_snapshot
 
 from grits.utils import align, get_hydrogen, get_index
 from grits import CG_System
 
 
-def backmap(cg_compound):
+def backmap(cg_compound, cg_gsd_filename=None):
     """Backmap a fine-grained representation onto a coarse one.
 
     Creates a fine-grained compound from a coarse one using the attributes
@@ -20,6 +24,10 @@ def backmap(cg_compound):
     ----------
     cg_compound : CG_Compound
         Coarse-grained compound
+    cg_gsd_filename : string
+        location of GSD file of CG trajectory to backmap
+        NOTE: this is *NOT* the gsd file corresponding to
+        the CG_Compound, which is the original (FG) trajectory
 
     Returns
     -------
@@ -28,8 +36,63 @@ def backmap(cg_compound):
     """
 
     if type(cg_compound) is CG_System:
+        assert cg_gsd_filename is not None
+               
         # TODO: change logic to save a single gsd file and/or return one single mbuild Compound
-        return [backmap(compound) for compound in cg_compound._compounds]
+        backmapped_system = Compound()
+        # get all gsd frames
+        cg_gsd_name = cg_gsd_filename.split('.')[0]
+        fg_gsd_path = cg_gsd_name + '-finegrained' + '.gsd'
+        with gsd.hoomd.open(cg_gsd_filename, 'r') as coarse, gsd.hoomd.open(fg_gsd_path,'w') as fine:
+            for frame_i, cg_frame in enumerate(coarse):
+                # do backmap on all the compounds
+                # append that to the gsd
+                # i.e. steal from coarsegrain.py line 720
+                new_frame = gsd.hoomd.Frame()
+                position = []
+                mass = []
+                #TODO: does this need to exist yet?
+                orientation = [] if cg_compound.aniso_beads else None
+                fine_grained = Compound()
+                f_box = freud.Box.from_box(cg_frame.configuration.box)
+                unwrap_pos = f_box.unwrap(
+                    cg_frame.particles.position, cg_frame.particles.image
+                )
+                new_frame.configuration.box = cg_frame.configuration.box
+                # now we have bead positions -> convert to FG particles
+                # such as in coarsegrain.py line 692
+                typeid = []
+                types = [i.split("...")[0] for i in cg_compound.mapping]
+                smarts_strings = [i.split("...")[1] for i in cg_compound.mapping]
+                for i, inds in enumerate(cg_compound.mapping.values()):
+                    typeid.append(np.ones(len(inds), dtype=np.int64) * i)
+                typeid = np.hstack(typeid)
+                np.savetxt("typeid.txt",typeid)
+                print(f"DEBUG. UNWRAP_POS IS {unwrap_pos} ({unwrap_pos.shape})")
+                for i, pos in enumerate(unwrap_pos):
+                    print(f"DEBUG. MADE IT TO {i} ({pos})")
+                    smarts = smarts_strings[typeid[i]]
+                    b = load(smarts, smiles=True)
+                    b.translate_to(pos)
+                    # TODO: translate orientations if included
+                    # TODO: figure out bonds?
+                    #anchors[i] = dict()
+                    #if cg_compound.anchors is not None:
+                    #    for index in cg_compound.anchors[bead.name]:
+                    #        anchors[i][index] = b[index]
+                    fine_grained.add(b, str(i))
+                parmed_compound = conversion.to_parmed(fine_grained,)
+                # TODO: this produces a "'Snapshot' has no attribute 'validate' error"
+                new_frame, refs = mbuild.formats.hoomd_snapshot.to_hoomdsnapshot(parmed_compound,
+                                                                                shift_coords=False,)
+                print(f"DEBUG: dir(new_frame): {dir(new_frame)}")
+                new_frame.configuration.step = frame_i
+                fine.append(new_frame)
+                
+        #for compound in cg_compound._compounds:
+        #    backmapped_system.add(backmap(compound))
+        # save to a gsd here?
+        return
 
     def fg_particles():
         """Set the particles of the fine-grained structure."""

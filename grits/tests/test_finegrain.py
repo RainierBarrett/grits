@@ -1,6 +1,7 @@
 import pytest
 from base_test import BaseTest
 from mbuild import Compound
+import gsd.hoomd
 
 from grits import backmap, CG_System
 from grits.utils import amber_dict
@@ -36,11 +37,12 @@ class Test_Backmap(BaseTest):
             conversion_dict=amber_dict,
             mass_scale=12.011,
         )
-        cg_filename = path.join(tmp_path, "benzene-cg.gsd")
+        cg_filename = 'benzene-cg.gsd'#path.join(tmp_path, "benzene-cg.gsd")
         cg_system.save(cg_filename)
-        backmapped_system = backmap(cg_system)
-        fg_filename = path.join(tmp_path, "benzene-fg.gsd")
-        backmapped_system.save(fg_filename)
+        backmapped_system = backmap(cg_system, cg_filename)
+        fg_filename = cg_filename.split('.gsd')[0] + "-finegrained.gsd"
+        #path.join(tmp_path, "benzene-fg.gsd")
+        #backmapped_system.save(fg_filename)
         with gsd.hoomd.open(gsdfile, "r") as orig, gsd.hoomd.open(
                 fg_filename, "r") as backmapped:
             # should have same number of frames
