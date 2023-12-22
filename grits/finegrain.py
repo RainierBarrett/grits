@@ -45,9 +45,6 @@ def backmap(cg_compound, cg_gsd_filename=None):
         fg_gsd_path = cg_gsd_name + '-finegrained' + '.gsd'
         with gsd.hoomd.open(cg_gsd_filename, 'r') as coarse, gsd.hoomd.open(fg_gsd_path,'w') as fine:
             for frame_i, cg_frame in enumerate(coarse):
-                # do backmap on all the compounds
-                # append that to the gsd
-                # i.e. steal from coarsegrain.py line 720
                 new_frame = gsd.hoomd.Frame()
                 position = []
                 mass = []
@@ -58,9 +55,6 @@ def backmap(cg_compound, cg_gsd_filename=None):
                 unwrap_pos = f_box.unwrap(
                     cg_frame.particles.position, cg_frame.particles.image
                 )
-                new_frame.configuration.box = cg_frame.configuration.box
-                # now we have bead positions -> convert to FG particles
-                # such as in coarsegrain.py line 692
                 typeid = []
                 types = [i.split("...")[0] for i in cg_compound.mapping]
                 smarts_strings = [i.split("...")[1] for i in cg_compound.mapping]
@@ -75,18 +69,21 @@ def backmap(cg_compound, cg_gsd_filename=None):
                     b = load(smarts, smiles=True)
                     b.translate_to(pos)
                     # TODO: translate orientations if included
-                    # TODO: figure out bonds?
-                    #anchors[i] = dict()
-                    #if cg_compound.anchors is not None:
-                    #    for index in cg_compound.anchors[bead.name]:
-                    #        anchors[i][index] = b[index]
+                    # TODO: figure out bonds
                     fine_grained.add(b, str(i))
                 parmed_compound = conversion.to_parmed(fine_grained,)
-                # TODO: this produces a "'Snapshot' has no attribute 'validate' error"
-                new_frame, refs = mbuild.formats.hoomd_snapshot.to_hoomdsnapshot(parmed_compound,
-                                                                                shift_coords=False,)
-                print(f"DEBUG: dir(new_frame): {dir(new_frame)}")
+                new_frame.configuration.box = cg_frame.configuration.box
                 new_frame.configuration.step = frame_i
+                new_frame.particles.N = fine_grained.n_particles
+                particles = [particle for particle in fine_grained.particles()]
+                new_frame.particles.position = [particle.pos for particle in particles]
+                types = list(set([particle.name for particle in particles]))
+                print(f"DEBUG: types is {types}")
+                typeid_vals = [i for i, _ in enumerate(types)]
+                # TODO: typeids?, masses? (infer these?)
+                new_frame.particles.types = types
+
+                print(f"DEBUG: dir(new_frame): {dir(new_frame)}")
                 fine.append(new_frame)
                 
         #for compound in cg_compound._compounds:
