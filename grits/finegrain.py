@@ -62,9 +62,7 @@ def backmap(cg_compound, cg_gsd_filename=None):
                     typeid.append(np.ones(len(inds), dtype=np.int64) * i)
                 typeid = np.hstack(typeid)
                 np.savetxt("typeid.txt",typeid)
-                print(f"DEBUG. UNWRAP_POS IS {unwrap_pos} ({unwrap_pos.shape})")
                 for i, pos in enumerate(unwrap_pos):
-                    print(f"DEBUG. MADE IT TO {i} ({pos})")
                     smarts = smarts_strings[typeid[i]]
                     b = load(smarts, smiles=True)
                     b.translate_to(pos)
@@ -77,13 +75,12 @@ def backmap(cg_compound, cg_gsd_filename=None):
                 new_frame.particles.N = fine_grained.n_particles
                 particles = [particle for particle in fine_grained.particles()]
                 new_frame.particles.position = [particle.pos for particle in particles]
-                types = list(set([particle.name for particle in particles]))
-                print(f"DEBUG: types is {types}")
-                typeid_vals = [i for i, _ in enumerate(types)]
-                # TODO: typeids?, masses? (infer these?)
-                new_frame.particles.types = types
-
-                print(f"DEBUG: dir(new_frame): {dir(new_frame)}")
+                type_names = list(set([particle.name for particle in particles]))
+                # TODO: masses, bonds (infer these?)
+                new_frame.particles.types = type_names
+                new_frame.particles.typeid = [
+                    type_names.index(part.name) for part in fine_grained.particles()
+                    ]
                 fine.append(new_frame)
                 
         #for compound in cg_compound._compounds:
