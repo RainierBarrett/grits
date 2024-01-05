@@ -75,17 +75,44 @@ def backmap(cg_compound, cg_gsd_filename=None):
                 new_frame.particles.N = fine_grained.n_particles
                 particles = [particle for particle in fine_grained.particles()]
                 new_frame.particles.position = [particle.pos for particle in particles]
+                new_frame.particles.mass = [particle.mass for particle in particles]
                 type_names = list(set([particle.name for particle in particles]))
-                # TODO: masses, bonds (infer these?)
                 new_frame.particles.types = type_names
                 new_frame.particles.typeid = [
-                    type_names.index(part.name) for part in fine_grained.particles()
+                    type_names.index(particle.name) for particle in particles
                     ]
+                # get fine grain bonds first
+                new_frame.bonds.N = fine_grained.n_bonds
+                bond_types = []
+                bond_ids = []
+                for bond in fine_grained.bonds():
+                    bond_pair = "-".join(
+                        [
+                            bond[0].name,
+                            bond[1].name,
+                        ]
+                    )
+                    if bond_pair not in bond_types:
+                        bond_types.append(bond_pair)
+                    _id = np.where(np.array(bond_types) == bond_pair)[0][0]
+                    bond_ids.append(_id)
+                bond_types = None #TODO: do we need these specified?
+                new_frame.bonds.typeid = np.array(bond_ids)
+                bond_group_list = []
+                for (a, b) in fine_grained.bonds():
+                    idx_a = particles.index(a)
+                    idx_b = particles.index(b)
+                    bond_group_list.append(
+                        (idx_a, idx_b) if idx_a < idx_b else (idx_b, idx_a)
+                    )
+                # TODO: add inter-bead bonds!
+                new_frame.bonds.group = np.array(bond_group_list)
+                if bond_types is not None:
+                    new_frame.bonds.types = bond_types
+                else:
+                    new_frame.bonds.types = None
+                new_frame.bonds.type_shapes = None
                 fine.append(new_frame)
-                
-        #for compound in cg_compound._compounds:
-        #    backmapped_system.add(backmap(compound))
-        # save to a gsd here?
         return
 
     def fg_particles():
