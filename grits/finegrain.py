@@ -96,8 +96,7 @@ def backmap(cg_compound, cg_gsd_filename=None):
                         bond_types.append(bond_pair)
                     _id = np.where(np.array(bond_types) == bond_pair)[0][0]
                     bond_ids.append(_id)
-                bond_types = None #TODO: do we need these specified?
-                new_frame.bonds.typeid = np.array(bond_ids)
+                new_frame.bonds.typeid = bond_ids
                 bond_group_list = []
                 for (a, b) in fine_grained.bonds():
                     idx_a = particles.index(a)
@@ -106,7 +105,8 @@ def backmap(cg_compound, cg_gsd_filename=None):
                         (idx_a, idx_b) if idx_a < idx_b else (idx_b, idx_a)
                     )
                 # TODO: add inter-bead bonds!
-                new_frame.bonds.group = np.array(bond_group_list)
+                new_frame.bonds.group = bond_group_list
+                bond_types = None
                 if bond_types is not None:
                     new_frame.bonds.types = bond_types
                 else:

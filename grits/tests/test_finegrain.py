@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from base_test import BaseTest
 from mbuild import Compound
 import gsd.hoomd
@@ -29,7 +30,7 @@ class Test_Backmap(BaseTest):
         assert fg_alkane.n_bonds == alkane.n_bonds
         assert fg_alkane.n_particles == alkane.n_particles
 
-    def test_backmapsystem(self, tmp_path):
+    def test_backmapsystem_nobonds(self, tmp_path):
         gsdfile = path.join(asset_dir, "benzene-aa.gsd")
         cg_system = CG_System(
             gsdfile,
@@ -37,7 +38,7 @@ class Test_Backmap(BaseTest):
             conversion_dict=amber_dict,
             mass_scale=12.011,
         )
-        cg_filename = 'benzene-cg.gsd'#path.join(tmp_path, "benzene-cg.gsd")
+        cg_filename = "benzene-cg.gsd"#path.join(tmp_path, "benzene-cg.gsd")
         cg_system.save(cg_filename)
         backmapped_system = backmap(cg_system, cg_filename)
         fg_filename = cg_filename.split('.gsd')[0] + "-finegrained.gsd"
@@ -50,4 +51,22 @@ class Test_Backmap(BaseTest):
             # should have same number of atoms, bonds, etc
             for frame1, frame2 in zip(orig, backmapped):
                 assert frame1.particles.N == frame2.particles.N
+                assert frame1.bonds.N == frame2.bonds.N
+                assert np.allclose(frame1.configuration.box, 
+                                   frame2.configuration.box)
+
+    def test_backmapsystem_withbonds(self, tmp_path):
+        gsdfile = path.join(asset_dir, "p3ht.gsd")
+        cg_system = CG_System(
+            gsdfile,
+            beads={"_A": "c1sccc1",
+                   "_B": "CCC"},
+            conversion_dict=amber_dict,
+            mass_scale=12.011,
+        )
+        cg_filename = "p3ht-cg.gsd"#path.join(tmp_path, "p3ht-cg.gsd")
+        cg_system.save(cg_filename)
+        backmapped_system = backmap(cg_system, cg_filename)
+        fg_filename = cg_filename.split('.gsd')[0] + "-finegrained.gsd"
+
                 

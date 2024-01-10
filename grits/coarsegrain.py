@@ -767,9 +767,9 @@ class CG_System:
                 if N_bonds > 0:
                     new_snap.bonds.N = N_bonds
                     new_snap.bonds.group = self._bond_array
-                    new_snap.bonds.typeid = np.array(bond_ids)
+                    new_snap.bonds.typeid = bond_ids
                     if bond_types is not None:
-                        new_snap.bonds.types = np.array(bond_types)
+                        new_snap.bonds.types = bond_types
                     else:
                         new_snap.bonds.types = None
                     new_snap.bonds.type_shapes = bond_type_shapes
