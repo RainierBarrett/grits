@@ -106,7 +106,6 @@ def backmap(cg_compound, cg_gsd_filename=None):
                     )
                 # TODO: add inter-bead bonds!
                 new_frame.bonds.group = bond_group_list
-                bond_types = None
                 if bond_types is not None:
                     new_frame.bonds.types = bond_types
                 else:
